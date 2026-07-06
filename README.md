@@ -1,5 +1,7 @@
 # PatchPacket
 
+[![CI](https://github.com/CHAPAPOPA/patchpacket/actions/workflows/ci.yml/badge.svg)](https://github.com/CHAPAPOPA/patchpacket/actions/workflows/ci.yml)
+
 PatchPacket turns a stack trace plus a local project folder into a focused Markdown packet for AI coding assistants.
 
 It is not a "dump the repo into a prompt" tool. PatchPacket starts with the task, finds the files that matter, adds a compact project snapshot, and writes context that ChatGPT, Claude, Cursor, Copilot Chat, Gemini, and similar tools can use quickly.
