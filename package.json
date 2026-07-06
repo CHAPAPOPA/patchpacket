@@ -1,0 +1,40 @@
+{
+  "name": "patchpacket",
+  "version": "0.1.0",
+  "description": "Create focused Markdown context packets for AI coding assistants.",
+  "main": "dist/index.js",
+  "bin": {
+    "patchpacket": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "cli",
+    "debugging",
+    "context",
+    "markdown"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.2",
+    "ignore": "^5.3.2",
+    "picocolors": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "tsx": "^4.20.5",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.2"
+  }
+}
