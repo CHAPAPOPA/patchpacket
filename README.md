@@ -56,7 +56,9 @@ Run locally from source:
 npm run dev -- bug . --error-file examples/error.txt --out patchpacket-context.md --budget 25000
 ```
 
-## Example Output
+## Example output
+
+See [examples/patchpacket-context.example.md](https://github.com/CHAPAPOPA/patchpacket/blob/main/examples/patchpacket-context.example.md) for a compact generated packet.
 
 ```md
 # PatchPacket Context
@@ -73,6 +75,12 @@ Help debug the following error.
 | src/index.ts | mentioned in stack trace |
 | package.json | project manifest |
 ```
+
+## How PatchPacket is different
+
+PatchPacket is not trying to replace Repomix, Gitingest, or Code2Prompt.
+
+Those tools are useful for broad repository packing and repo-to-prompt workflows. PatchPacket starts from a specific task: a bug report or stack trace. It tries to create a smaller, explainable context packet with only the files and signals that are useful for debugging.
 
 ## v0.1 Supports
 
@@ -91,10 +99,6 @@ Help debug the following error.
 - telemetry
 - web UI or VS Code extension
 - broad whole-repo prompt generation
-
-## Positioning
-
-PatchPacket is not a replacement for Repomix, Gitingest, or Code2Prompt. Those tools are useful for broader repository packaging. PatchPacket focuses on task-based minimal context, starting with bug reports and stack traces.
 
 ## Roadmap
 

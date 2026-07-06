@@ -26,3 +26,9 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: CLI help smoke test
+        run: node dist/index.js --help
+
+      - name: CLI bug smoke test
+        run: node dist/index.js bug . --error-file examples/error.txt --out patchpacket-context.md --budget 25000
