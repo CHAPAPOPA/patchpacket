@@ -1,6 +1,6 @@
 {
   "name": "patchpacket",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Task-based context packer that turns stack traces into focused Markdown packets for AI coding assistants.",
   "main": "dist/index.js",
   "bin": {
