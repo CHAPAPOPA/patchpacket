@@ -87,7 +87,11 @@ function renderGitDiff(input: ContextPacketInput): string {
     return fencedCode('diff', input.gitDiff.diff);
   }
 
-  return 'No git diff found or project is not a git repository.';
+  if (input.gitDiff.status === 'empty') {
+    return 'Git diff is empty.';
+  }
+
+  return 'Git diff is unavailable, or this project is not a git repository.';
 }
 
 function renderRelatedFiles(input: ContextPacketInput): string {

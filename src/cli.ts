@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Command, InvalidArgumentError } from 'commander';
 import { runBugCommand } from './commands/bug';
 import { BugCommandOptions } from './types';
@@ -8,7 +10,7 @@ export function createCli(): Command {
   program
     .name('patchpacket')
     .description('Create focused Markdown context packets for AI coding assistants.')
-    .version('0.1.0');
+    .version(readPackageVersion());
 
   program
     .command('bug')
@@ -32,6 +34,19 @@ export function createCli(): Command {
     });
 
   return program;
+}
+
+function readPackageVersion(): string {
+  const packageJsonPath = path.resolve(__dirname, '..', 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as {
+    version?: unknown;
+  };
+
+  if (typeof packageJson.version !== 'string') {
+    throw new Error(`Missing package version in ${packageJsonPath}`);
+  }
+
+  return packageJson.version;
 }
 
 function parseBudget(value: string): number {

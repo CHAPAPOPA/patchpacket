@@ -39,7 +39,7 @@ TypeError: Cannot read properties of undefined (reading 'id')
 
 ## Git Diff
 
-No git diff found or project is not a git repository.
+Git diff is empty.
 
 ## Related Files
 
