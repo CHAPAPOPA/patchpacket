@@ -84,7 +84,7 @@ PatchPacket is not trying to replace Repomix, Gitingest, or Code2Prompt.
 
 Those tools are useful for broad repository packing and repo-to-prompt workflows. PatchPacket starts from a specific task: a bug report or stack trace. It tries to create a smaller, explainable context packet with only the files and signals that are useful for debugging.
 
-## Current Supports
+## Current features
 
 - `bug` mode
 - stack trace path extraction for common JavaScript, TypeScript, and Python formats
@@ -93,7 +93,7 @@ Those tools are useful for broad repository packing and repo-to-prompt workflows
 - best-effort budget-aware packing with a configurable approximate token estimate
 - large selected file protection
 
-## Not Yet Supported
+## Not yet supported
 
 - AI API calls
 - code editing or auto-fixing

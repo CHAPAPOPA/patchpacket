@@ -115,11 +115,24 @@ function renderPacket(
   mandatorySectionsExceedBudget: boolean,
 ): BudgetedPacket {
   const warnings = buildWarnings(selectedFiles, gitDiff, mandatorySectionsExceedBudget);
-  let estimatedTokens = 0;
-  let markdown = '';
+  const maxEstimateDigits = String(Number.MAX_SAFE_INTEGER).length;
 
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    markdown = renderMarkdown({
+  for (let digitCount = 1; digitCount <= maxEstimateDigits; digitCount += 1) {
+    const placeholderEstimate = 10 ** (digitCount - 1);
+    const placeholderMarkdown = renderMarkdown({
+      ...input,
+      selectedFiles,
+      gitDiff,
+      estimatedTokens: placeholderEstimate,
+      warnings,
+    });
+    const estimatedTokens = estimateTokens(placeholderMarkdown);
+
+    if (String(estimatedTokens).length !== digitCount) {
+      continue;
+    }
+
+    const markdown = renderMarkdown({
       ...input,
       selectedFiles,
       gitDiff,
@@ -127,24 +140,10 @@ function renderPacket(
       warnings,
     });
 
-    const nextEstimate = estimateTokens(markdown);
-
-    if (nextEstimate === estimatedTokens) {
-      return { markdown, estimatedTokens, selectedFiles, gitDiff, warnings };
-    }
-
-    estimatedTokens = nextEstimate;
+    return { markdown, estimatedTokens, selectedFiles, gitDiff, warnings };
   }
 
-  markdown = renderMarkdown({
-    ...input,
-    selectedFiles,
-    gitDiff,
-    estimatedTokens,
-    warnings,
-  });
-
-  return { markdown, estimatedTokens: estimateTokens(markdown), selectedFiles, gitDiff, warnings };
+  throw new Error('Unable to calculate a stable token estimate.');
 }
 
 function buildWarnings(
@@ -158,8 +157,9 @@ function buildWarnings(
   const warnings: string[] = [];
 
   if (omittedFileCount > 0) {
+    const verb = omittedFileCount === 1 ? 'was' : 'were';
     warnings.push(
-      `${omittedFileCount} file content${omittedFileCount === 1 ? '' : 's'} were omitted to fit the token budget.`,
+      `${omittedFileCount} file content${omittedFileCount === 1 ? '' : 's'} ${verb} omitted to fit the token budget.`,
     );
   }
 
