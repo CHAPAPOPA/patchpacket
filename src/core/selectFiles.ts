@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ParsedStackFile, ProjectFile, SelectedFile } from '../types';
+import { ParsedStackFile, ProjectFile, SelectedFile, SelectedFilePriority } from '../types';
 import {
   normalizeRelativePath,
   relativeToProject,
@@ -8,11 +8,15 @@ import {
   toPosixPath,
 } from './fileUtils';
 
-const metadataCandidates: Array<{ path: string; reason: string }> = [
-  { path: 'package.json', reason: 'project manifest' },
-  { path: 'README.md', reason: 'project README' },
-  { path: '.env.example', reason: 'environment example' },
-  { path: 'tsconfig.json', reason: 'TypeScript config' },
+const metadataCandidates: Array<{
+  path: string;
+  reason: string;
+  priority: SelectedFilePriority;
+}> = [
+  { path: 'package.json', reason: 'project manifest', priority: 4 },
+  { path: 'README.md', reason: 'project README', priority: 5 },
+  { path: '.env.example', reason: 'environment example', priority: 4 },
+  { path: 'tsconfig.json', reason: 'TypeScript config', priority: 4 },
 ];
 
 const configPatterns = [
@@ -36,7 +40,7 @@ export function selectFiles(
     const absolutePath = resolveStackFile(projectPath, stackFile.rawPath, filesByRelativePath);
 
     if (absolutePath && fs.existsSync(absolutePath)) {
-      addSelected(selected, projectPath, absolutePath, 'mentioned in stack trace');
+      addSelected(selected, projectPath, absolutePath, 'mentioned in stack trace', 1);
     }
   }
 
@@ -44,7 +48,7 @@ export function selectFiles(
     const file = filesByRelativePath.get(candidate.path);
 
     if (file) {
-      addSelected(selected, projectPath, file.absolutePath, candidate.reason);
+      addSelected(selected, projectPath, file.absolutePath, candidate.reason, candidate.priority);
     }
   }
 
@@ -52,21 +56,21 @@ export function selectFiles(
     const fileName = path.basename(file.relativePath);
 
     if (configPatterns.some((pattern) => pattern.test(fileName))) {
-      addSelected(selected, projectPath, file.absolutePath, 'build/runtime config');
+      addSelected(selected, projectPath, file.absolutePath, 'build/runtime config', 4);
     }
   }
 
-  const stackSelectedFiles = Array.from(selected.values()).filter(
-    (file) => file.reason.includes('mentioned in stack trace'),
-  );
+  const stackSelectedFiles = Array.from(selected.values()).filter((file) => file.priority === 1);
 
   for (const file of stackSelectedFiles) {
     for (const testPath of findNearbyTests(file.relativePath, filesByRelativePath)) {
-      addSelected(selected, projectPath, testPath, 'nearby test file');
+      addSelected(selected, projectPath, testPath, 'nearby test file', 3);
     }
   }
 
-  return Array.from(selected.values()).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  return Array.from(selected.values()).sort(
+    (a, b) => a.priority - b.priority || a.relativePath.localeCompare(b.relativePath),
+  );
 }
 
 function resolveStackFile(
@@ -148,6 +152,7 @@ function addSelected(
   projectPath: string,
   absolutePath: string,
   reason: string,
+  priority: SelectedFilePriority,
 ): void {
   const relativePath = relativeToProject(projectPath, absolutePath);
   const existing = selected.get(relativePath);
@@ -156,6 +161,7 @@ function addSelected(
     if (!existing.reason.includes(reason)) {
       existing.reason = `${existing.reason}; ${reason}`;
     }
+    existing.priority = Math.min(existing.priority, priority) as SelectedFilePriority;
     return;
   }
 
@@ -163,5 +169,6 @@ function addSelected(
     relativePath,
     absolutePath,
     reason,
+    priority,
   });
 }

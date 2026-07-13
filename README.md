@@ -28,6 +28,8 @@ Options:
 - `--include <patterns...>`: glob include patterns to scan
 - `--exclude <patterns...>`: optional gitignore-style exclude patterns
 
+`--budget` performs best-effort budget-aware packing. Files directly referenced by the stack trace are prioritized, followed by the git diff, nearby tests, config, and README. Lower-priority content may be omitted, but every selected file remains visible with its reason. The token estimate is approximate.
+
 ### Windows PowerShell
 
 On Windows PowerShell, npm may create a `.ps1` shim that is blocked by execution policy. Use the `.cmd` shim if needed:
@@ -82,16 +84,16 @@ PatchPacket is not trying to replace Repomix, Gitingest, or Code2Prompt.
 
 Those tools are useful for broad repository packing and repo-to-prompt workflows. PatchPacket starts from a specific task: a bug report or stack trace. It tries to create a smaller, explainable context packet with only the files and signals that are useful for debugging.
 
-## v0.1 Supports
+## Current Supports
 
 - `bug` mode
 - stack trace path extraction for common JavaScript, TypeScript, and Python formats
 - `.gitignore` and `.patchpacketignore`
 - selected stack trace files, common manifests/configs, nearby tests, and git diff
-- approximate token estimate with a configurable budget
+- best-effort budget-aware packing with a configurable approximate token estimate
 - large selected file protection
 
-## v0.1 Does Not Support
+## Not Yet Supported
 
 - AI API calls
 - code editing or auto-fixing
@@ -103,6 +105,7 @@ Those tools are useful for broad repository packing and repo-to-prompt workflows
 ## Roadmap
 
 - v0.1: bug mode
-- v0.2: pr mode
-- v0.3: explain, tests, and refactor modes
+- v0.2: improve task-focused bug context and budget-aware packing
+- v0.3: pr mode
+- v0.4: explain, tests, and refactor modes
 - Later: VS Code extension
