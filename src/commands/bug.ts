@@ -2,13 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
 import { BugCommandOptions } from '../types';
+import { applyTokenBudget } from '../core/applyTokenBudget';
 import { readTextFile } from '../core/fileUtils';
 import { getGitDiff } from '../core/git';
 import { parseError } from '../core/parseError';
-import { renderMarkdown } from '../core/renderMarkdown';
 import { scanProject } from '../core/scanProject';
 import { selectFiles } from '../core/selectFiles';
-import { estimateTokens } from '../core/tokenEstimate';
 
 const MAX_SELECTED_FILE_CONTENT_BYTES = 200 * 1024;
 
@@ -60,7 +59,7 @@ export async function runBugCommand(projectPathInput: string, options: BugComman
     budget: options.budget,
     generatedAt,
   } as const;
-  const { markdown, estimatedTokens } = renderWithStableEstimate(packetInput);
+  const { markdown, estimatedTokens } = applyTokenBudget(packetInput);
 
   if (options.stdout) {
     process.stdout.write(markdown);
@@ -77,45 +76,4 @@ export async function runBugCommand(projectPathInput: string, options: BugComman
   if (estimatedTokens > options.budget) {
     process.stderr.write(`${pc.yellow('Warning:')} estimated tokens exceed budget.\n`);
   }
-}
-
-function renderWithStableEstimate(
-  input: Omit<Parameters<typeof renderMarkdown>[0], 'estimatedTokens' | 'warnings'>,
-): { markdown: string; estimatedTokens: number } {
-  let estimatedTokens = 0;
-  let markdown = '';
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const warnings =
-      estimatedTokens > input.budget
-        ? [`estimated tokens exceed budget by ${estimatedTokens - input.budget}`]
-        : [];
-
-    markdown = renderMarkdown({
-      ...input,
-      estimatedTokens,
-      warnings,
-    });
-
-    const nextEstimate = estimateTokens(markdown);
-
-    if (nextEstimate === estimatedTokens) {
-      break;
-    }
-
-    estimatedTokens = nextEstimate;
-  }
-
-  const warnings =
-    estimatedTokens > input.budget
-      ? [`estimated tokens exceed budget by ${estimatedTokens - input.budget}`]
-      : [];
-
-  markdown = renderMarkdown({
-    ...input,
-    estimatedTokens,
-    warnings,
-  });
-
-  return { markdown, estimatedTokens };
 }

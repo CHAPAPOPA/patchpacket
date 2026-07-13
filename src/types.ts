@@ -21,20 +21,26 @@ export interface ParsedStackFile {
   column?: number;
 }
 
+export type SelectedFilePriority = 1 | 3 | 4 | 5;
+
 export interface SelectedFile {
   relativePath: string;
   absolutePath: string;
   reason: string;
+  priority: SelectedFilePriority;
 }
 
 export interface RenderedSelectedFile extends SelectedFile {
   content?: string;
   skippedReason?: string;
+  omittedReason?: string;
   size: number;
 }
 
+export type GitDiffStatus = 'included' | 'empty' | 'unavailable' | 'omitted';
+
 export interface GitDiffResult {
-  status: 'included' | 'empty' | 'unavailable';
+  status: GitDiffStatus;
   diff: string;
   note?: string;
 }

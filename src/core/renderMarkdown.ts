@@ -91,6 +91,10 @@ function renderGitDiff(input: ContextPacketInput): string {
     return 'Git diff is empty.';
   }
 
+  if (input.gitDiff.status === 'omitted') {
+    return 'Git diff was omitted to fit the token budget.';
+  }
+
   return 'Git diff is unavailable, or this project is not a git repository.';
 }
 
@@ -103,6 +107,10 @@ function renderRelatedFiles(input: ContextPacketInput): string {
     .map((file) => {
       if (file.skippedReason) {
         return [`### ${file.relativePath}`, '', file.skippedReason].join('\n');
+      }
+
+      if (file.omittedReason) {
+        return [`### ${file.relativePath}`, '', file.omittedReason].join('\n');
       }
 
       return [

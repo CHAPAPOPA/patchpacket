@@ -25,11 +25,11 @@ TypeError: Cannot read properties of undefined (reading 'id')
 
 | File | Reason |
 | --- | --- |
-| package.json | project manifest |
-| README.md | project README |
 | src/cli.ts | mentioned in stack trace |
 | src/index.ts | mentioned in stack trace |
+| package.json | project manifest |
 | tsconfig.json | TypeScript config |
+| README.md | project README |
 
 ## Project Snapshot
 
@@ -72,7 +72,7 @@ createCli().parseAsync(process.argv).catch((error: unknown) => {
 ```json
 {
   "name": "patchpacket",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "bin": {
     "patchpacket": "./dist/index.js"
   }

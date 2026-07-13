@@ -29,6 +29,20 @@ describe('renderMarkdown', () => {
 
     expect(markdown).toContain('Git diff is unavailable');
   });
+
+  it('renders budget omission messages for files and git diff', () => {
+    const input = createInput({
+      status: 'omitted',
+      diff: '',
+    });
+    input.selectedFiles[0].content = undefined;
+    input.selectedFiles[0].omittedReason = 'Omitted to fit the token budget.';
+
+    const markdown = renderMarkdown(input);
+
+    expect(markdown).toContain('Omitted to fit the token budget.');
+    expect(markdown).toContain('Git diff was omitted to fit the token budget.');
+  });
 });
 
 function createInput(gitDiff: ContextPacketInput['gitDiff'] = {
@@ -46,6 +60,7 @@ function createInput(gitDiff: ContextPacketInput['gitDiff'] = {
         relativePath: 'src/auth/login.ts',
         absolutePath: '/repo/src/auth/login.ts',
         reason: 'mentioned in stack trace',
+        priority: 1,
         size: 42,
         content: 'export function login() {}',
       },
