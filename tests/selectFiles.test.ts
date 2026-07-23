@@ -41,12 +41,45 @@ describe('selectFiles', () => {
       fs.rmSync(projectPath, { recursive: true, force: true });
     }
   });
+
+  it('places related files before nearby tests, config, and README', () => {
+    const projectPath = fs.mkdtempSync(path.join(os.tmpdir(), 'patchpacket-select-'));
+
+    try {
+      const scannedFiles = [
+        createProjectFile(projectPath, 'README.md'),
+        createProjectFile(projectPath, 'package.json'),
+        createProjectFile(projectPath, 'src/main.test.ts'),
+        createProjectFile(projectPath, 'src/related.ts'),
+        createProjectFile(projectPath, 'src/main.ts', "import './related';"),
+      ];
+      const selectedFiles = selectFiles(projectPath, scannedFiles.reverse(), [
+        { rawPath: 'src/main.ts' },
+      ]);
+
+      expect(
+        selectedFiles.map((file) => ({
+          relativePath: file.relativePath,
+          priority: file.priority,
+          reason: file.reason,
+        })),
+      ).toEqual([
+        { relativePath: 'src/main.ts', priority: 1, reason: 'mentioned in stack trace' },
+        { relativePath: 'src/related.ts', priority: 2, reason: 'imported by src/main.ts' },
+        { relativePath: 'src/main.test.ts', priority: 3, reason: 'nearby test file' },
+        { relativePath: 'package.json', priority: 4, reason: 'project manifest' },
+        { relativePath: 'README.md', priority: 5, reason: 'project README' },
+      ]);
+    } finally {
+      fs.rmSync(projectPath, { recursive: true, force: true });
+    }
+  });
 });
 
-function createProjectFile(projectPath: string, relativePath: string): ProjectFile {
+function createProjectFile(projectPath: string, relativePath: string, content = ''): ProjectFile {
   const absolutePath = path.join(projectPath, relativePath);
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, '', 'utf8');
+  fs.writeFileSync(absolutePath, content, 'utf8');
 
   return {
     relativePath,
