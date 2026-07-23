@@ -47,9 +47,9 @@ PatchPacket focuses on minimal, explainable context for one task at a time.
 
 ### Related Local Files
 
-For stack-trace files, PatchPacket statically and best-effort follows local `import`, `require`, literal `import()` (including awaited calls), and re-export references. It also follows local HTML `script src` references and identifies HTML entrypoints that reference a stack-trace script.
+For stack-trace files, PatchPacket statically and best-effort follows local `import`, `require`, literal `import()` (including awaited calls), and re-export references, including resolvable JSON targets. It also follows local HTML `script src` references and identifies HTML entrypoints that reference a stack-trace script.
 
-Discovery is limited to relative paths, a maximum depth of 2, and 12 related files. Package imports, Node.js built-ins, path aliases, URLs, and non-literal dynamic imports are not resolved. This is not a complete dependency graph or bundler-aware module resolver.
+Discovery is limited to relative paths, a maximum depth of 2, and 12 related files. Package imports, Node.js built-ins, path aliases, URLs, non-literal dynamic imports, and bundler-specific resolution are not supported. This is not a complete dependency graph or module resolver.
 
 ## Local Development
 

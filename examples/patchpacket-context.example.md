@@ -81,7 +81,7 @@ createCli().parseAsync(process.argv).catch((error: unknown) => {
 ```json
 {
   "name": "patchpacket",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "bin": {
     "patchpacket": "dist/index.js"
   }
