@@ -59,7 +59,14 @@ export function toPosixPath(filePath: string): string {
 }
 
 export function normalizeRelativePath(filePath: string): string {
-  return toPosixPath(path.normalize(filePath)).replace(/^\.\//, '');
+  return path.posix.normalize(toPosixPath(filePath)).replace(/^\.\//, '');
+}
+
+export function compareNormalizedPaths(firstPath: string, secondPath: string): number {
+  const first = normalizeRelativePath(firstPath);
+  const second = normalizeRelativePath(secondPath);
+
+  return first < second ? -1 : first > second ? 1 : 0;
 }
 
 export function isInsidePath(parentPath: string, childPath: string): boolean {

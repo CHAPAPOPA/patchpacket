@@ -28,7 +28,7 @@ Options:
 - `--include <patterns...>`: glob include patterns to scan
 - `--exclude <patterns...>`: optional gitignore-style exclude patterns
 
-`--budget` performs best-effort budget-aware packing. Files directly referenced by the stack trace are prioritized, followed by the git diff, nearby tests, config, and README. Lower-priority content may be omitted, but every selected file remains visible with its reason. The token estimate is approximate.
+`--budget` performs best-effort budget-aware packing. Files directly referenced by the stack trace are prioritized, followed by the git diff, related local source files, nearby tests, config, and README. Lower-priority content may be omitted, but every selected file remains visible with its reason. The token estimate is approximate.
 
 ### Windows PowerShell
 
@@ -44,6 +44,12 @@ patchpacket.cmd bug . --error-file .\error.txt --out .\patchpacket-context.md
 Bug reports often need just a few files: the error, the stack trace targets, the manifest/config, nearby tests, and current local diff. Full repository prompts waste tokens and make the assistant reason through unrelated code.
 
 PatchPacket focuses on minimal, explainable context for one task at a time.
+
+### Related Local Files
+
+For stack-trace files, PatchPacket statically and best-effort follows local `import`, `require`, literal `import()` (including awaited calls), and re-export references. It also follows local HTML `script src` references and identifies HTML entrypoints that reference a stack-trace script.
+
+Discovery is limited to relative paths, a maximum depth of 2, and 12 related files. Package imports, Node.js built-ins, path aliases, URLs, and non-literal dynamic imports are not resolved. This is not a complete dependency graph or bundler-aware module resolver.
 
 ## Local Development
 
@@ -90,6 +96,7 @@ Those tools are useful for broad repository packing and repo-to-prompt workflows
 - stack trace path extraction for common JavaScript, TypeScript, and Python formats
 - `.gitignore` and `.patchpacketignore`
 - selected stack trace files, common manifests/configs, nearby tests, and git diff
+- bounded local related-file discovery for JavaScript, TypeScript, and HTML entrypoints
 - best-effort budget-aware packing with a configurable approximate token estimate
 - large selected file protection
 
@@ -105,7 +112,7 @@ Those tools are useful for broad repository packing and repo-to-prompt workflows
 ## Roadmap
 
 - v0.1: bug mode
-- v0.2: improve task-focused bug context and budget-aware packing
-- v0.3: pr mode
-- v0.4: explain, tests, and refactor modes
-- Later: VS Code extension
+- v0.2: token-budget-aware packing
+- v0.3: dependency-aware bug context
+- v0.4: PR mode
+- Later: explain, tests, refactor modes, and editor integrations

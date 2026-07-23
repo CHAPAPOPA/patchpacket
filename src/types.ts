@@ -21,7 +21,7 @@ export interface ParsedStackFile {
   column?: number;
 }
 
-export type SelectedFilePriority = 1 | 3 | 4 | 5;
+export type SelectedFilePriority = 1 | 2 | 3 | 4 | 5;
 
 export interface SelectedFile {
   relativePath: string;

@@ -1,4 +1,5 @@
 import { ContextPacketInput, GitDiffResult, RenderedSelectedFile } from '../types';
+import { compareNormalizedPaths } from './fileUtils';
 import { renderMarkdown } from './renderMarkdown';
 import { estimateTokens } from './tokenEstimate';
 
@@ -29,7 +30,10 @@ export function applyTokenBudget(input: PacketCandidates): BudgetedPacket {
 
   const fileCandidates = originalFiles
     .filter((file) => !file.skippedReason && file.content !== undefined)
-    .sort((a, b) => a.priority - b.priority || a.relativePath.localeCompare(b.relativePath));
+    .sort(
+      (a, b) =>
+        a.priority - b.priority || compareNormalizedPaths(a.relativePath, b.relativePath),
+    );
   const stackTraceFiles = fileCandidates.filter((file) => file.priority === 1);
   const lowerPriorityFiles = fileCandidates.filter((file) => file.priority !== 1);
 

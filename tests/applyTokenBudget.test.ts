@@ -47,6 +47,48 @@ describe('applyTokenBudget', () => {
     );
   });
 
+  it('packs related files after git diff and before tests, config, and README', () => {
+    const relatedFile = selectedFile('src/related.ts', 2, 'related file\n'.repeat(50));
+    relatedFile.reason = 'imported by src/cli.ts';
+    const packet = applyTokenBudget(
+      createInput({
+        budget: 800,
+        selectedFiles: [
+          selectedFile('src/cli.ts', 1, 'stack file'),
+          relatedFile,
+          selectedFile('src/cli.test.ts', 3, 'test file\n'.repeat(500)),
+          selectedFile('package.json', 4, 'config file\n'.repeat(500)),
+          selectedFile('README.md', 5, 'readme file\n'.repeat(500)),
+        ],
+        gitDiff: { status: 'included', diff: 'diff line\n'.repeat(30) },
+      }),
+    );
+
+    expect(packet.gitDiff.status).toBe('included');
+    expect(fileByPath(packet, 'src/related.ts').content).toContain('related file');
+    expect(fileByPath(packet, 'src/cli.test.ts').omittedReason).toBe(
+      'Omitted to fit the token budget.',
+    );
+    expect(packet.markdown).toContain('| src/related.ts | imported by src/cli.ts |');
+  });
+
+  it('keeps an omitted related file in the rationale table', () => {
+    const relatedFile = selectedFile('src/related.ts', 2, 'related file\n'.repeat(1000));
+    relatedFile.reason = 'imported by src/cli.ts';
+    const packet = applyTokenBudget(
+      createInput({
+        budget: 700,
+        selectedFiles: [selectedFile('src/cli.ts', 1, 'stack file'), relatedFile],
+      }),
+    );
+
+    expect(fileByPath(packet, 'src/related.ts').omittedReason).toBe(
+      'Omitted to fit the token budget.',
+    );
+    expect(packet.markdown).toContain('| src/related.ts | imported by src/cli.ts |');
+    expect(packet.markdown).toContain('### src/related.ts\n\nOmitted to fit the token budget.');
+  });
+
   it('continues to smaller lower-priority files when a stack-trace file cannot fit', () => {
     const packet = applyTokenBudget(
       createInput({

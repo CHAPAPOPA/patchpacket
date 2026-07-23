@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ParsedStackFile, ProjectFile, SelectedFile, SelectedFilePriority } from '../types';
+import { discoverRelatedFiles } from './discoverRelatedFiles';
 import {
+  compareNormalizedPaths,
   normalizeRelativePath,
   relativeToProject,
   resolveInsideProject,
@@ -44,6 +46,12 @@ export function selectFiles(
     }
   }
 
+  const stackSelectedFiles = Array.from(selected.values()).filter((file) => file.priority === 1);
+
+  for (const file of discoverRelatedFiles(projectPath, scannedFiles, stackSelectedFiles)) {
+    addSelected(selected, projectPath, file.absolutePath, file.reason, file.priority);
+  }
+
   for (const candidate of metadataCandidates) {
     const file = filesByRelativePath.get(candidate.path);
 
@@ -60,8 +68,6 @@ export function selectFiles(
     }
   }
 
-  const stackSelectedFiles = Array.from(selected.values()).filter((file) => file.priority === 1);
-
   for (const file of stackSelectedFiles) {
     for (const testPath of findNearbyTests(file.relativePath, filesByRelativePath)) {
       addSelected(selected, projectPath, testPath, 'nearby test file', 3);
@@ -69,7 +75,7 @@ export function selectFiles(
   }
 
   return Array.from(selected.values()).sort(
-    (a, b) => a.priority - b.priority || a.relativePath.localeCompare(b.relativePath),
+    (a, b) => a.priority - b.priority || compareNormalizedPaths(a.relativePath, b.relativePath),
   );
 }
 
@@ -158,9 +164,15 @@ function addSelected(
   const existing = selected.get(relativePath);
 
   if (existing) {
-    if (!existing.reason.includes(reason)) {
-      existing.reason = `${existing.reason}; ${reason}`;
+    const existingReasons = new Set(existing.reason.split('; '));
+
+    for (const nextReason of reason.split('; ')) {
+      if (!existingReasons.has(nextReason)) {
+        existingReasons.add(nextReason);
+      }
     }
+
+    existing.reason = Array.from(existingReasons).join('; ');
     existing.priority = Math.min(existing.priority, priority) as SelectedFilePriority;
     return;
   }
