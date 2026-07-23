@@ -8,6 +8,7 @@ export interface LocalReference {
 }
 
 const stringTokenPrefix = '__PATCHPACKET_STRING_';
+const maxTemplateNesting = 64;
 const regexPrefixKeywords = new Set([
   'await',
   'case',
@@ -45,7 +46,7 @@ export function extractLocalSourceReferences(source: string): LocalReference[] {
   addMatches(
     references,
     code,
-    /\bexport\s+(?:\*|\{[^}]*\})\s+from\s+__PATCHPACKET_STRING_(\d+)__/g,
+    /\bexport\s+(?:type\s+)?(?:\*|\{[^}]*\})\s+from\s+__PATCHPACKET_STRING_(\d+)__/g,
     stringLiterals,
     're-export',
   );
@@ -69,16 +70,58 @@ export function extractLocalSourceReferences(source: string): LocalReference[] {
 
 export function extractLocalHtmlScriptSources(html: string): string[] {
   const withoutComments = html.replace(/<!--[\s\S]*?-->/g, ' ');
+  const lowerHtml = withoutComments.toLowerCase();
   const sources: string[] = [];
-  const pattern =
-    /<script\b[^>]*?(?<![-:\w])src\s*=\s*(?:"([^"]+)"|'([^']+)')/gi;
+  let searchIndex = 0;
 
-  for (const match of withoutComments.matchAll(pattern)) {
-    const source = stripUrlSuffix(match[1] ?? match[2] ?? '');
+  while (searchIndex < withoutComments.length) {
+    const tagStart = lowerHtml.indexOf('<script', searchIndex);
 
-    if (isLocalSpecifier(source)) {
-      sources.push(source);
+    if (tagStart === -1) {
+      break;
     }
+
+    const nameEnd = tagStart + '<script'.length;
+    const boundary = withoutComments[nameEnd] ?? '';
+
+    if (boundary !== '>' && boundary !== '/' && !/\s/.test(boundary)) {
+      searchIndex = nameEnd;
+      continue;
+    }
+
+    const tagEnd = findHtmlTagEnd(withoutComments, nameEnd);
+
+    if (tagEnd === undefined) {
+      break;
+    }
+
+    const attributes = withoutComments.slice(nameEnd, tagEnd);
+    const sourceValue = findQuotedHtmlAttribute(attributes, 'src');
+
+    if (sourceValue !== undefined) {
+      const source = stripUrlSuffix(sourceValue);
+
+      if (isLocalSpecifier(source)) {
+        sources.push(source);
+      }
+    }
+
+    if (/\/\s*$/.test(attributes)) {
+      searchIndex = tagEnd + 1;
+      continue;
+    }
+
+    const closingTagStart = lowerHtml.indexOf('</script', tagEnd + 1);
+
+    if (closingTagStart === -1) {
+      break;
+    }
+
+    const closingTagEnd = findHtmlTagEnd(
+      withoutComments,
+      closingTagStart + '</script'.length,
+    );
+    searchIndex = closingTagEnd === undefined ? withoutComments.length : closingTagEnd + 1;
   }
 
   return sources;
@@ -145,6 +188,11 @@ function maskCommentsStringsTemplatesAndRegexes(
       continue;
     }
 
+    if (character === '/' && isJsxClosingTagSlash(source, index)) {
+      code += character;
+      continue;
+    }
+
     if (character === '/' && isRegexLiteralStart(code)) {
       index = readRegexLiteral(source, index);
       code += '__PATCHPACKET_REGEX__';
@@ -187,19 +235,81 @@ function readQuotedString(
   return { value, end: source.length - 1, closed: false };
 }
 
-function readTemplateLiteral(source: string, start: number): number {
+function readTemplateLiteral(source: string, start: number, nesting = 0): number {
+  if (nesting >= maxTemplateNesting) {
+    return source.length - 1;
+  }
+
   for (let index = start + 1; index < source.length; index += 1) {
-    if (source[index] === '\\') {
+    const character = source[index];
+
+    if (character === '\\') {
       index += 1;
       continue;
     }
 
-    if (source[index] === '`') {
+    if (character === '`') {
       return index;
+    }
+
+    if (character === '$' && source[index + 1] === '{') {
+      index = readTemplateExpression(source, index + 2, nesting);
     }
   }
 
   return source.length - 1;
+}
+
+function readTemplateExpression(source: string, start: number, nesting: number): number {
+  let braceDepth = 1;
+
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (character === '/' && next === '/') {
+      const end = source.indexOf('\n', index + 2);
+      index = end === -1 ? source.length : end;
+      continue;
+    }
+
+    if (character === '/' && next === '*') {
+      const end = source.indexOf('*/', index + 2);
+      index = end === -1 ? source.length : end + 1;
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      index = readQuotedString(source, index, character).end;
+      continue;
+    }
+
+    if (character === '`') {
+      index = readTemplateLiteral(source, index, nesting + 1);
+      continue;
+    }
+
+    if (character === '{') {
+      braceDepth += 1;
+      continue;
+    }
+
+    if (character === '}') {
+      braceDepth -= 1;
+
+      if (braceDepth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return source.length - 1;
+}
+
+function isJsxClosingTagSlash(source: string, index: number): boolean {
+  const next = source[index + 1] ?? '';
+
+  return source[index - 1] === '<' && (next === '>' || /[A-Za-z_$]/.test(next));
 }
 
 function isRegexLiteralStart(code: string): boolean {
@@ -283,6 +393,92 @@ function readRegexLiteral(source: string, start: number): number {
   }
 
   return source.length - 1;
+}
+
+function findHtmlTagEnd(html: string, start: number): number | undefined {
+  let quote: '"' | "'" | undefined;
+
+  for (let index = start; index < html.length; index += 1) {
+    const character = html[index];
+
+    if (quote !== undefined) {
+      if (character === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+
+    if (character === '>') {
+      return index;
+    }
+  }
+
+  return undefined;
+}
+
+function findQuotedHtmlAttribute(attributes: string, targetName: string): string | undefined {
+  let index = 0;
+
+  while (index < attributes.length) {
+    while (/\s/.test(attributes[index] ?? '')) {
+      index += 1;
+    }
+
+    if (index >= attributes.length || attributes[index] === '/') {
+      break;
+    }
+
+    const nameStart = index;
+
+    while (index < attributes.length && !/[\s=/]/.test(attributes[index])) {
+      index += 1;
+    }
+
+    const name = attributes.slice(nameStart, index).toLowerCase();
+
+    while (/\s/.test(attributes[index] ?? '')) {
+      index += 1;
+    }
+
+    if (attributes[index] !== '=') {
+      continue;
+    }
+
+    index += 1;
+
+    while (/\s/.test(attributes[index] ?? '')) {
+      index += 1;
+    }
+
+    const quote = attributes[index];
+
+    if (quote !== '"' && quote !== "'") {
+      while (index < attributes.length && !/\s/.test(attributes[index])) {
+        index += 1;
+      }
+      continue;
+    }
+
+    const valueStart = index + 1;
+    const valueEnd = attributes.indexOf(quote, valueStart);
+
+    if (valueEnd === -1) {
+      return undefined;
+    }
+
+    if (name === targetName) {
+      return attributes.slice(valueStart, valueEnd);
+    }
+
+    index = valueEnd + 1;
+  }
+
+  return undefined;
 }
 
 function isLocalSpecifier(specifier: string): boolean {

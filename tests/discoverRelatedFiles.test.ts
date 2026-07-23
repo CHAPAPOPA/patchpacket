@@ -19,6 +19,8 @@ describe('discoverRelatedFiles', () => {
     ['an awaited literal dynamic import', "const value = await import('./awaited');", 'src/awaited.ts', 'dynamically imported by src/main.ts'],
     ['a named re-export', "export { value } from './named';", 'src/named.ts', 're-exported by src/main.ts'],
     ['an export star', "export * from './star';", 'src/star.ts', 're-exported by src/main.ts'],
+    ['a type-only named re-export', "export type { User } from './types';", 'src/types.ts', 're-exported by src/main.ts'],
+    ['a type-only star re-export', "export type * from './models';", 'src/models.ts', 're-exported by src/main.ts'],
   ])('%s', (_description, mainSource, relatedPath, reason) => {
     const mainPath = reason.includes('src/main.js') ? 'src/main.js' : 'src/main.ts';
 
@@ -286,6 +288,21 @@ describe('discoverRelatedFiles', () => {
             reason: 'HTML entrypoint referencing stack-trace file',
           }),
         ]);
+      },
+    );
+  });
+
+  it('selects only scripts referenced by real HTML src attributes', () => {
+    withProject(
+      {
+        'index.html':
+          "<script title=\"src='./fake.js'\" data-info='src=\"./also-fake.js\"' src=\"./real.js\"></script>",
+        'fake.js': '',
+        'also-fake.js': '',
+        'real.js': '',
+      },
+      ({ projectPath, scannedFiles }) => {
+        expect(paths(discover(projectPath, scannedFiles, 'index.html'))).toEqual(['real.js']);
       },
     );
   });
